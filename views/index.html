@@ -1,0 +1,265 @@
+<html> 
+  <head>
+    
+<script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.js"></script>
+<script crossorigin src="https://unpkg.com/react@15/dist/react.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@15/dist/react-dom.js"></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/react-router/4.2.0/react-router.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/react-router-dom/4.2.2/react-router-dom.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/redux/3.7.2/redux.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/react-redux/5.0.6/react-redux.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/redux-thunk/2.2.0/redux-thunk.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/redux-logger@3.0.6/dist/redux-logger.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.17.0/axios.js'></script>
+<link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head>
+  <body>
+    <div id='root'></div>
+  </body>
+  <script type='text/babel'>
+    const { Link, HashRouter, Route, Switch } = ReactRouterDOM;
+    const { Component } = React;
+    const Router = HashRouter;
+    const { Provider, connect } = ReactRedux;
+    const BASE_URL = '<%= BASE_URL %>';
+
+
+    
+    /*********************
+     * SET UP STORE
+     *********************/
+    
+
+    const { createStore, combineReducers, applyMiddleware } = Redux;
+    const { createLogger } = reduxLogger;
+
+    const store = createStore(combineReducers(
+      {
+      user: (state={}, action)=> {
+        switch(action.type){
+          case 'SET_USER': {
+            state = action.data;
+          }
+        }
+        return state;
+      },
+      
+          foos: (state = [], action)=> {
+            switch(action.type){
+              case 'SET_Foos':
+                state = action.data;
+                break;
+            }
+            return state;
+          }
+        
+      }
+    ), applyMiddleware(createLogger({})), applyMiddleware(ReduxThunk.default));
+
+    const attemptLogin = (credentials)=> {
+      return (dispatch)=> {
+        axios.post(BASE_URL + "/api/tokens", credentials)
+          .then( result => result.data.token)
+          .then( token => axios.get(BASE_URL + '/api/me', { headers: { auth: token}}))
+          .then( result => dispatch(setUser(result.data)));
+      }
+    };
+
+    const setUser = (credentials)=> {
+      return {
+          type: 'SET_USER',
+          data: credentials
+      };
+    };
+
+    
+    /*********************
+     * SET UP NAV
+     *********************/
+    
+    
+      const _Nav = ({ location, attemptLogin, logout, foos, user })=> {
+          const isSelected = (pathname, startsWith)=> {
+            return pathname === location.pathname || ( startsWith && location.pathname.indexOf(pathname) === 0 );
+
+          };
+          const isLoggedIn = !!user.id;
+          return ( 
+          <div style={{ marginBottom: '10px'}}>
+          <ul className='nav nav-tabs' style={{ marginBottom: '10px'}}>
+            <li className={ isSelected('/') ? 'active' : '' }>
+              <Link to='/'>Home</Link>
+            </li>
+            
+                <li className={ isSelected('/foos', true) ? 'active' : '' }>
+                    <Link to='/foos'>
+                      Foos
+                      {
+                        foos && (
+                          <span className='badge'>{ foos.length }</span>
+                        ) 
+                      }
+                    </Link>
+                  </li>
+                
+            {
+              isLoggedIn ? (
+                <li>
+                  <a onClick={ logout }>Logout ( { user.username } )</a>
+                </li>
+              ) : (
+                <li>
+                  <a onClick={()=> attemptLogin({ username: 'Moe', password: 'moe', id: 1 })}>Login</a>
+                </li>
+              )
+            }
+          </ul>
+          <div className='label label-default'>
+              pathname: <em>{ location.pathname }</em>
+          </div>
+          </div>
+        );
+      };
+      const Nav = connect(null, (dispatch)=> {
+        return {
+          attemptLogin: (credentials)=> {
+            return dispatch(attemptLogin(credentials));
+          },
+          logout: ()=> {
+            dispatch(setUser({}));
+          }
+        };
+      })(_Nav);
+    
+    
+    /*********************
+     * SET UP COMPONENTS
+     *********************/
+    
+    
+      
+      
+    /*********************
+     * SET UP COMPONENT Foos
+     *********************/
+    
+      const _Foos = ({foos}) => {
+        return (
+          <div className='well'>
+            Foos
+            ({ Foos.length}) 
+            {
+              foos.map( (item, idx) => {
+                
+                return (
+                  <li key={ idx }>
+                    
+                  </li>
+                );
+              })
+            }
+          </div>
+        );
+      };
+      const foosMapper = ({foos})=> {
+        return {
+          foos
+        };
+      };
+      const Foos = connect(foosMapper)(_Foos); 
+
+      
+    /*********************
+     * Action Creator for Foos
+     *********************/
+    
+      const fetchFoos = ()=> {
+        return (dispatch)=> {
+          
+    /*********************
+     * Hook into API to load Foos
+     *********************/
+    
+          const data = undefined;
+          dispatch({
+            type: 'SET_Foos',
+            data
+          });
+        };
+      };
+    
+      const Home = ()=> {
+        return (
+          <div className='well'>
+            Home
+          </div>
+        );
+      };
+
+      const Title = ()=> {
+        return (
+          <h2>Simple</h2>
+        );
+      };
+    
+
+    
+    /*********************
+     * SET UP ROUTES
+     *********************/
+    
+
+    class _Routes extends Component{
+      componentDidMount(){
+        this.props.init();
+      }
+      render(){
+        return (<Router><div className='container'>
+      <Route component={ Title } />
+      <Route render={ ({ location } )=> <Nav location={ location } foos={this.props.foos} user={ this.props.user }/> } />
+      <Route path='/' exact component={ Home } />
+      
+      <Route path='/foos' component={Foos} /></div></Router>);
+      }
+    };
+
+    
+    const mapStateToProps = ({ foos, user })=> {
+      return {
+        foos,user
+      };
+    };
+    
+
+    
+    const mapDispatchToProps = (dispatch)=> {
+      return {
+        init: ()=> {
+          
+        }
+      };
+    };
+    
+
+    const Routes = connect(mapStateToProps, mapDispatchToProps)(_Routes);
+
+    
+    /*********************
+     * SET UP App
+     *********************/
+    
+
+    const App = ()=> {
+      return (
+        <Provider store={ store }><Routes /></Provider>
+      );
+    };
+
+
+    const root = document.getElementById('root');
+    ReactDOM.render(<App />, root);
+  </script>
+</html>
